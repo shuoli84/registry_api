@@ -13,6 +13,7 @@ mod registry_api;
 use actix_web::{middleware::Logger, web, App, HttpServer};
 pub use async_trait::async_trait;
 pub use config::*;
+pub use registry_api::CargoAuth;
 pub use result::*;
 pub use semver::{Version, VersionReq};
 use std::sync::Arc;
