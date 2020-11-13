@@ -17,6 +17,7 @@ pub use result::*;
 pub use semver::{Version, VersionReq};
 use std::sync::Arc;
 use std::thread;
+use actix_web::web::ServiceConfig;
 
 async fn index() -> String {
     format!("registry_api crate")
@@ -26,7 +27,7 @@ async fn me() -> String {
     format!("registry_api crate me")
 }
 
-pub async fn spawn_within_actix(config: Config) {
+pub async fn spawn_within_actix<F>(config: Config, config_fn: F) where F: FnOnce(&mut ServiceConfig) + Send + Copy + Clone + 'static {
     let config = Arc::new(config.clone());
     let bind_addr = config.bind_addr.clone();
     tokio::spawn(config.git_manager.clone().reset_git_worker(config.clone()));
@@ -36,6 +37,7 @@ pub async fn spawn_within_actix(config: Config) {
             .wrap(Logger::new(
                 r#"%a "%r" %s %b "%{Referer}i" "%{User-Agent}i" %T"#,
             ))
+            .configure(config_fn)
             .app_data(config.clone())
             .route("/", web::get().to(index))
             .route("/registry/me", web::get().to(me))
@@ -86,7 +88,11 @@ pub async fn spawn_within_actix(config: Config) {
 
 #[actix_rt::main]
 pub async fn spawn_actix(config: Config) {
-    spawn_within_actix(config).await;
+    spawn_within_actix(config,
+        |_config| {
+            // default config do nothing
+        }
+    ).await;
 }
 
 pub fn spawn_thread(config: Config) {
